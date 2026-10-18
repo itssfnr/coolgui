@@ -1,23 +1,25 @@
 
--- Position Saver & Teleport Panel
--- LocalScript in StarterPlayerScripts
+-- POSITION TELEPORT PANEL
+-- LocalScript für dein eigenes Roblox-Spiel
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local savedCFrame = nil
 local autoTeleport = false
 
+-- GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "PositionTeleportPanel"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(270, 230)
-frame.Position = UDim2.new(0, 20, 0.4, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+frame.Size = UDim2.fromOffset(280, 245)
+frame.Position = UDim2.new(0, 20, 0.35, 0)
+frame.BackgroundColor3 = Color3.fromRGB(25, 27, 35)
+frame.BorderSizePixel = 0
 frame.Parent = gui
 
 local corner = Instance.new("UICorner")
@@ -25,32 +27,42 @@ corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, -40, 0, 42)
+title.Position = UDim2.fromOffset(10, 0)
 title.BackgroundTransparency = 1
-title.Text = "Position Teleport"
+title.Text = "POSITION TELEPORT"
 title.TextColor3 = Color3.new(1, 1, 1)
-title.TextSize = 20
 title.Font = Enum.Font.GothamBold
+title.TextSize = 17
 title.Parent = frame
 
 local status = Instance.new("TextLabel")
 status.Position = UDim2.fromOffset(10, 42)
-status.Size = UDim2.new(1, -20, 0, 28)
+status.Size = UDim2.new(1, -20, 0, 35)
 status.BackgroundTransparency = 1
 status.Text = "Keine Position gespeichert"
-status.TextColor3 = Color3.fromRGB(200, 200, 200)
+status.TextColor3 = Color3.fromRGB(190, 195, 210)
 status.TextSize = 12
+status.TextWrapped = true
+status.Font = Enum.Font.Gotham
 status.Parent = frame
+
+local function getRoot()
+    local character = player.Character
+    if not character then return nil end
+    return character:FindFirstChild("HumanoidRootPart")
+end
 
 local function makeButton(text, y, callback)
     local button = Instance.new("TextButton")
-    button.Position = UDim2.fromOffset(15, y)
-    button.Size = UDim2.new(1, -30, 0, 35)
-    button.BackgroundColor3 = Color3.fromRGB(65, 100, 210)
+    button.Position = UDim2.fromOffset(12, y)
+    button.Size = UDim2.new(1, -24, 0, 38)
+    button.BackgroundColor3 = Color3.fromRGB(65, 105, 220)
     button.TextColor3 = Color3.new(1, 1, 1)
-    button.TextSize = 14
-    button.Font = Enum.Font.GothamSemibold
     button.Text = text
+    button.Font = Enum.Font.GothamSemibold
+    button.TextSize = 14
+    button.AutoButtonColor = true
     button.Parent = frame
 
     local c = Instance.new("UICorner")
@@ -61,92 +73,115 @@ local function makeButton(text, y, callback)
     return button
 end
 
-local function getRoot()
-    local character = player.Character
-    if not character then return nil end
-    return character:FindFirstChild("HumanoidRootPart")
-end
-
-makeButton("Position speichern", 76, function()
+makeButton("Position speichern", 82, function()
     local root = getRoot()
+
     if not root then
-        status.Text = "Figur nicht verfügbar"
+        status.Text = "Deine Figur ist noch nicht bereit."
         return
     end
 
     savedCFrame = root.CFrame
+
+    local p = savedCFrame.Position
     status.Text = string.format(
-        "Gespeichert: %.1f, %.1f, %.1f",
-        savedCFrame.Position.X,
-        savedCFrame.Position.Y,
-        savedCFrame.Position.Z
+        "Gespeichert: X %.2f | Y %.2f | Z %.2f",
+        p.X, p.Y, p.Z
     )
 end)
 
-makeButton("Zur Position teleportieren", 118, function()
+makeButton("Zur gespeicherten Position", 126, function()
     local root = getRoot()
+
     if not root or not savedCFrame then
-        status.Text = "Erst eine Position speichern!"
+        status.Text = "Speichere zuerst eine Position!"
         return
     end
 
     root.CFrame = savedCFrame
-    status.Text = "Teleport ausgeführt"
+    status.Text = "Teleport ausgeführt."
 end)
 
 local autoButton
-autoButton = makeButton("Auto-Teleport: AUS", 160, function()
+autoButton = makeButton("Auto-Teleport: AUS", 170, function()
     autoTeleport = not autoTeleport
 
     autoButton.Text = autoTeleport
-        and "Auto-Teleport: AN"
+        and "Auto-Teleport: AN (0,1 s)"
         or "Auto-Teleport: AUS"
 
     autoButton.BackgroundColor3 = autoTeleport
-        and Color3.fromRGB(40, 150, 85)
-        or Color3.fromRGB(65, 100, 210)
+        and Color3.fromRGB(35, 155, 90)
+        or Color3.fromRGB(65, 105, 220)
+
+    status.Text = autoTeleport
+        and "Rückteleport aktiviert."
+        or "Rückteleport deaktiviert."
 end)
 
--- Teleport alle 0,5 Sekunden
+-- Auto-Teleport alle 0,1 Sekunden
 task.spawn(function()
     while gui.Parent do
-        task.wait(0.5)
+        task.wait(0.1)
 
         if autoTeleport and savedCFrame then
             local root = getRoot()
+
             if root then
                 root.CFrame = savedCFrame
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
             end
         end
     end
 end)
 
--- Einfaches Verschieben des Panels per Maus
+-- Panel verschieben
 local dragging = false
-local dragStart, startPos
+local dragStart
+local startPosition
 
 title.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
         dragging = true
         dragStart = input.Position
-        startPos = frame.Position
+        startPosition = frame.Position
     end
 end)
 
-title.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+
+        frame.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
+-- GUI bleibt nach Respawn erhalten.
+-- Die gespeicherte Position bleibt während dieser Sitzung erhalten.
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if autoTeleport and savedCFrame then
+        local root = getRoot()
+        if root then
+            root.CFrame = savedCFrame
+        end
     end
 end)
